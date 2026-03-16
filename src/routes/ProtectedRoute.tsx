@@ -17,7 +17,6 @@ export const ProtectedRoute: React.FC = () => {
   }
 
   if (!user) {
-    // Redirect to login but save the attempted location
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 

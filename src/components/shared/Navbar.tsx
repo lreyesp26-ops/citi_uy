@@ -15,10 +15,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
   const [showLogoutModal, setShowLogoutModal] = React.useState(false);
 
   const handleLogout = async () => {
+    setShowLogoutModal(false);
     await supabase.auth.signOut();
+    sessionStorage.clear();
     localStorage.removeItem('session_only');
-    sessionStorage.removeItem('active_tab');
-    window.location.href = '/';
+    window.location.replace('/');
   };
 
   const fullName = user?.persona 
@@ -70,7 +71,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
 
             <button
               onClick={() => setShowLogoutModal(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-red-700 hover:text-white hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+              className="cursor-pointer flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-red-700 hover:text-white hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
               title="Cerrar sesión"
             >
               <LogOut className="h-4 w-4" />
@@ -96,6 +97,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
           <div className="flex w-full gap-3">
             <Button
               variant="secondary"
+              className="cursor-pointer"
               fullWidth
               onClick={() => setShowLogoutModal(false)}
             >
@@ -103,6 +105,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
             </Button>
             <Button
               variant="primary"
+              className="cursor-pointer"
               fullWidth
               onClick={handleLogout}
             >
