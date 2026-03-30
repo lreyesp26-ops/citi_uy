@@ -63,3 +63,38 @@ export interface AuthUser {
   email: string;
   persona: Persona;
 }
+
+// Añadir al src/types/index.ts existente
+
+export interface MinisterioLider {
+  id: string;
+  id_ministerio: string;
+  id_persona: string;
+  personas: {
+    id_persona: string;
+    nombres: string;
+    apellidos: string;
+    rol: string;
+    foto_url?: string;
+    estado_activo: boolean;
+  };
+}
+
+export interface Ministerio {
+  id_ministerio: string;
+  nombre: string;
+  descripcion?: string;
+  color: string;
+  logo_url?: string;
+  es_principal: boolean;
+  estado_activo: boolean;
+  created_at?: string;
+  ministerio_lideres: MinisterioLider[];
+}
+
+export interface MinisterioFormData {
+  nombre: string;
+  descripcion?: string;
+  color: string;
+  es_principal?: boolean;
+}
