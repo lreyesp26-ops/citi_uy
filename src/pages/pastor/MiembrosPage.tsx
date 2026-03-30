@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Users, UserPlus, Search, Filter, ChevronUp, ChevronDown, Edit2 } from 'lucide-react';
+import { Users, UserPlus, Search, Filter, ChevronUp, ChevronDown, Edit2, AlertTriangle } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { Modal } from '../../components/ui/Modal';
 import { MiembroFormModal } from '../../components/miembros/MiembroFormModal';
 import { useMiembros } from '../../hooks/useMiembros';
 import { Miembro, MiembroFormData } from '../../types';
@@ -33,8 +34,13 @@ export const MiembrosPage: React.FC = () => {
     const [filterEstado, setFilterEstado] = useState<FilterEstado>('activos');
     const [sortField, setSortField] = useState<SortField>('apellidos');
     const [sortDir, setSortDir] = useState<SortDir>('asc');
+
     const [showFormModal, setShowFormModal] = useState(false);
     const [editingMiembro, setEditingMiembro] = useState<Miembro | null>(null);
+
+    // Modal de confirmación de estado
+    const [confirmTarget, setConfirmTarget] = useState<Miembro | null>(null);
+    const [confirmLoading, setConfirmLoading] = useState(false);
 
     const handleSort = (field: SortField) => {
         if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -86,6 +92,14 @@ export const MiembrosPage: React.FC = () => {
         return crearMiembro(data);
     };
 
+    const handleConfirmToggle = async () => {
+        if (!confirmTarget) return;
+        setConfirmLoading(true);
+        await toggleEstado(confirmTarget.id_persona, confirmTarget.estado_activo);
+        setConfirmLoading(false);
+        setConfirmTarget(null);
+    };
+
     const SortIcon: React.FC<{ field: SortField }> = ({ field }) => {
         if (sortField !== field) return <ChevronUp className="w-3 h-3 text-gray-300" />;
         return sortDir === 'asc'
@@ -113,7 +127,7 @@ export const MiembrosPage: React.FC = () => {
                 </div>
                 <Button
                     onClick={() => { setEditingMiembro(null); setShowFormModal(true); }}
-                    className="flex-shrink-0"
+                    className="flex items-center gap-2 flex-shrink-0"
                 >
                     <UserPlus className="w-4 h-4" />
                     <span className="hidden sm:inline">Nuevo miembro</span>
@@ -153,8 +167,8 @@ export const MiembrosPage: React.FC = () => {
                                 key={f}
                                 onClick={() => setFilterEstado(f)}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${filterEstado === f
-                                    ? 'bg-red-100 text-red-700 ring-1 ring-red-200'
-                                    : 'text-gray-500 hover:bg-gray-100'
+                                        ? 'bg-red-100 text-red-700 ring-1 ring-red-200'
+                                        : 'text-gray-500 hover:bg-gray-100'
                                     }`}
                             >
                                 {f}
@@ -176,7 +190,7 @@ export const MiembrosPage: React.FC = () => {
                     }
                     action={
                         miembros.length === 0 ? (
-                            <Button onClick={() => setShowFormModal(true)}>
+                            <Button onClick={() => setShowFormModal(true)} className="flex items-center gap-2">
                                 <UserPlus className="w-4 h-4" /> Registrar primer miembro
                             </Button>
                         ) : undefined
@@ -262,14 +276,13 @@ export const MiembrosPage: React.FC = () => {
                                             </div>
                                         </td>
 
-                                        {/* Estado — clic directo, sin modal */}
+                                        {/* Estado — clic abre confirmación */}
                                         <td className="px-5 py-3.5 text-center">
                                             <button
-                                                onClick={() => toggleEstado(miembro.id_persona, miembro.estado_activo)}
-                                                title={miembro.estado_activo ? 'Clic para desactivar' : 'Clic para activar'}
+                                                onClick={() => setConfirmTarget(miembro)}
                                                 className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${miembro.estado_activo
-                                                    ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                        ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                                     }`}
                                             >
                                                 {miembro.estado_activo ? 'Activo' : 'Inactivo'}
@@ -300,7 +313,52 @@ export const MiembrosPage: React.FC = () => {
                 </Card>
             )}
 
-            {/* Modal formulario */}
+            {/* Modal de confirmación de estado */}
+            <Modal
+                isOpen={!!confirmTarget}
+                onClose={() => setConfirmTarget(null)}
+                title={confirmTarget?.estado_activo ? 'Desactivar miembro' : 'Activar miembro'}
+                width="sm"
+            >
+                <div className="flex flex-col items-center text-center p-2">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${confirmTarget?.estado_activo ? 'bg-red-100' : 'bg-green-100'
+                        }`}>
+                        <AlertTriangle className={`w-6 h-6 ${confirmTarget?.estado_activo ? 'text-red-600' : 'text-green-600'
+                            }`} />
+                    </div>
+                    <p className="text-gray-700 font-medium mb-1">
+                        ¿{confirmTarget?.estado_activo ? 'Desactivar' : 'Activar'} a este miembro?
+                    </p>
+                    <p className="text-sm text-gray-500 mb-6">
+                        <span className="font-semibold text-gray-700">
+                            {confirmTarget?.nombres} {confirmTarget?.apellidos}
+                        </span>
+                        {confirmTarget?.estado_activo
+                            ? ' quedará como inactivo en el sistema.'
+                            : ' volverá a estar activo en el sistema.'}
+                    </p>
+                    <div className="flex w-full gap-3">
+                        <Button
+                            variant="secondary"
+                            fullWidth
+                            onClick={() => setConfirmTarget(null)}
+                            disabled={confirmLoading}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            variant={confirmTarget?.estado_activo ? 'danger' : 'primary'}
+                            fullWidth
+                            isLoading={confirmLoading}
+                            onClick={handleConfirmToggle}
+                        >
+                            {confirmTarget?.estado_activo ? 'Sí, desactivar' : 'Sí, activar'}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Modal de formulario */}
             <MiembroFormModal
                 isOpen={showFormModal}
                 onClose={handleCloseForm}
