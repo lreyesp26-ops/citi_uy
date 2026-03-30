@@ -15,8 +15,9 @@ export const MinisterioCard: React.FC<MinisterioCardProps> = ({ ministerio, onEd
     const lideresActivos = ministerio_lideres.filter(ml => ml.personas?.estado_activo);
 
     return (
-        <div className={`relative bg-white rounded-2xl border transition-all duration-200 hover:shadow-md overflow-hidden ${!estado_activo ? 'opacity-60' : ''} ${es_principal ? 'ring-2 ring-offset-1' : 'border-gray-100'}`}
-            style={es_principal ? { ringColor: color } : {}}
+        <div
+            className={`relative bg-white rounded-2xl border transition-all duration-200 hover:shadow-md overflow-hidden ${!estado_activo ? 'opacity-60' : ''} ${es_principal ? 'ring-2 ring-offset-1 border-transparent' : 'border-gray-100'}`}
+            style={es_principal ? { '--tw-ring-color': color } as React.CSSProperties : {}}
         >
             {/* Top color strip */}
             <div className="h-1.5 w-full" style={{ backgroundColor: color }} />
