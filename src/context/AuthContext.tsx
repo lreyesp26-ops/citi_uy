@@ -1,18 +1,10 @@
-import React, { createContext, useEffect, useRef, useState } from 'react';
+// Re-export so existing imports keep working
+export { AuthContext } from './AuthContextDef';
+
+import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { AuthUser, Persona } from '../types';
-
-interface AuthContextType {
-  user: AuthUser | null;
-  loading: boolean;
-  signOut: () => Promise<void>;
-}
-
-export const AuthContext = createContext<AuthContextType>({
-  user: null,
-  loading: true,
-  signOut: async () => { },
-});
+import type { AuthUser, Persona } from '../types';
+import { AuthContext } from './AuthContextDef';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -28,11 +20,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const armSafetyTimer = () => {
     if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
     safetyTimerRef.current = setTimeout(() => {
-      setLoading(prev => {
-        if (prev) console.warn('[AuthContext] Safety timeout: loading forzado a false');
-        return false;
-      });
-    }, 8000);
+      setLoading(false);
+    }, 5000);
   };
 
   const disarmSafetyTimer = () => {
@@ -53,7 +42,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    // Carga inicial con loading visible (primera vez o recarga de página)
+    // Solo se usa en la carga inicial (primera vez o login fresco).
+    // NO se llama en refreshes de token, para no interferir con el cliente Supabase.
     const loadPersonaData = async (userId: string, email: string): Promise<void> => {
       try {
         const { data, error } = await supabase
@@ -65,7 +55,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!mounted) return;
 
         if (error) {
-          console.error('[AuthContext] Error fetching persona:', error);
           done();
           return;
         }
@@ -75,30 +64,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(authUser);
           userRef.current = authUser;
         }
-      } catch (err) {
-        console.error('[AuthContext] Unexpected error:', err);
+      } catch {
+        // error silencioso
       } finally {
         done();
-      }
-    };
-
-    // Refresco silencioso: NO toca loading ni el spinner.
-    // Se usa cuando el token se refresca automáticamente y el user ya está en memoria.
-    const silentRefreshPersona = async (userId: string, email: string): Promise<void> => {
-      try {
-        const { data, error } = await supabase
-          .from('personas')
-          .select('*')
-          .eq('id_usuario', userId)
-          .single();
-
-        if (!mounted || error || !data) return;
-
-        const authUser: AuthUser = { id: userId, email, persona: data as Persona };
-        setUser(authUser);
-        userRef.current = authUser;
-      } catch (err) {
-        console.error('[AuthContext] Silent refresh error:', err);
       }
     };
 
@@ -134,23 +103,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (localStorage.getItem('session_only') === 'true') {
               sessionStorage.setItem('active_tab', 'true');
             }
-            // Si ya hay un usuario en memoria, es un re-login por refresco de token.
-            // Refrescamos silenciosamente SIN activar loading para evitar spinner infinito.
+
             if (userRef.current) {
-              await silentRefreshPersona(session.user.id, session.user.email ?? '');
-            } else {
-              // Sin usuario en memoria → carga normal con spinner
-              armSafetyTimer();
-              await loadPersonaData(session.user.id, session.user.email ?? '');
+              // El token fue refrescado automáticamente por Supabase.
+              // El cliente ya tiene el nuevo JWT internamente — no hacer NADA más.
+              // Hacer queries adicionales aquí interfiere con el refresh y bloquea
+              // las queries de los módulos.
+              return;
             }
+
+            // Sin usuario en memoria → login real, cargar datos con spinner.
+            armSafetyTimer();
+            await loadPersonaData(session.user.id, session.user.email ?? '');
+
           } else {
+            // Primer SIGNED_IN tras getSession → ya lo manejó getSession, ignorar.
             initialSessionHandled.current = true;
           }
 
-        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-          // Token refrescado automáticamente por Supabase — refrescar silenciosamente
-          // sin mostrar spinner al usuario.
-          await silentRefreshPersona(session.user.id, session.user.email ?? '');
+        } else if (event === 'TOKEN_REFRESHED') {
+          // Supabase ya actualizó el JWT internamente. No hacer nada adicional.
+          return;
 
         } else if (event === 'SIGNED_OUT') {
           localStorage.removeItem('session_only');
