@@ -16,10 +16,10 @@ export const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
+  const baseClasses = 'inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
   const widthClasses = fullWidth ? 'w-full' : '';
   const paddingClasses = 'px-4 py-2.5';
-  
+
   const variants = {
     primary: 'bg-gradient-to-r from-red-700 via-red-600 to-red-800 text-white hover:from-red-800 hover:via-red-700 hover:to-red-900 focus:ring-red-500 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed',
     secondary: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-red-500 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed',
@@ -33,8 +33,8 @@ export const Button: React.FC<ButtonProps> = ({
       disabled={disabled || isLoading}
       {...props}
     >
-      {isLoading && <Spinner className="mr-2 text-current" size={18} />}
-      <span className={isLoading ? 'opacity-90' : ''}>{children}</span>
+      {isLoading && <Spinner className="text-current" size={18} />}
+      {children}
     </button>
   );
 };

@@ -53,6 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
+    // Carga inicial con loading visible (primera vez o recarga de página)
     const loadPersonaData = async (userId: string, email: string): Promise<void> => {
       try {
         const { data, error } = await supabase
@@ -78,6 +79,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('[AuthContext] Unexpected error:', err);
       } finally {
         done();
+      }
+    };
+
+    // Refresco silencioso: NO toca loading ni el spinner.
+    // Se usa cuando el token se refresca automáticamente y el user ya está en memoria.
+    const silentRefreshPersona = async (userId: string, email: string): Promise<void> => {
+      try {
+        const { data, error } = await supabase
+          .from('personas')
+          .select('*')
+          .eq('id_usuario', userId)
+          .single();
+
+        if (!mounted || error || !data) return;
+
+        const authUser: AuthUser = { id: userId, email, persona: data as Persona };
+        setUser(authUser);
+        userRef.current = authUser;
+      } catch (err) {
+        console.error('[AuthContext] Silent refresh error:', err);
       }
     };
 
@@ -113,11 +134,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (localStorage.getItem('session_only') === 'true') {
               sessionStorage.setItem('active_tab', 'true');
             }
-            armSafetyTimer();
-            await loadPersonaData(session.user.id, session.user.email ?? '');
+            // Si ya hay un usuario en memoria, es un re-login por refresco de token.
+            // Refrescamos silenciosamente SIN activar loading para evitar spinner infinito.
+            if (userRef.current) {
+              await silentRefreshPersona(session.user.id, session.user.email ?? '');
+            } else {
+              // Sin usuario en memoria → carga normal con spinner
+              armSafetyTimer();
+              await loadPersonaData(session.user.id, session.user.email ?? '');
+            }
           } else {
             initialSessionHandled.current = true;
           }
+
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          // Token refrescado automáticamente por Supabase — refrescar silenciosamente
+          // sin mostrar spinner al usuario.
+          await silentRefreshPersona(session.user.id, session.user.email ?? '');
 
         } else if (event === 'SIGNED_OUT') {
           localStorage.removeItem('session_only');
@@ -129,8 +162,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             done();
           }
         }
-        // TOKEN_REFRESHED: ignorar completamente — la sesión sigue activa,
-        // el usuario ya está en memoria, no hay nada que recargar.
       }
     );
 
