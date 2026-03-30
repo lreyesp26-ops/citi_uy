@@ -1,18 +1,10 @@
-import React, { createContext, useEffect, useRef, useState } from 'react';
+// Re-export so existing imports keep working
+export { AuthContext } from './AuthContextDef';
+
+import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { AuthUser, Persona } from '../types';
-
-interface AuthContextType {
-  user: AuthUser | null;
-  loading: boolean;
-  signOut: () => Promise<void>;
-}
-
-export const AuthContext = createContext<AuthContextType>({
-  user: null,
-  loading: true,
-  signOut: async () => { },
-});
+import type { AuthUser, Persona } from '../types';
+import { AuthContext } from './AuthContextDef';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -28,11 +20,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const armSafetyTimer = () => {
     if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
     safetyTimerRef.current = setTimeout(() => {
-      setLoading(prev => {
-        if (prev) console.warn('[AuthContext] Safety timeout: loading forzado a false');
-        return false;
-      });
-    }, 8000);
+      setLoading(false);
+    }, 5000);
   };
 
   const disarmSafetyTimer = () => {
@@ -53,6 +42,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
+    // Solo se usa en la carga inicial (primera vez o login fresco).
+    // NO se llama en refreshes de token, para no interferir con el cliente Supabase.
     const loadPersonaData = async (userId: string, email: string): Promise<void> => {
       try {
         const { data, error } = await supabase
@@ -64,7 +55,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!mounted) return;
 
         if (error) {
-          console.error('[AuthContext] Error fetching persona:', error);
           done();
           return;
         }
@@ -74,8 +64,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(authUser);
           userRef.current = authUser;
         }
-      } catch (err) {
-        console.error('[AuthContext] Unexpected error:', err);
+      } catch {
+        // error silencioso
       } finally {
         done();
       }
@@ -113,11 +103,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (localStorage.getItem('session_only') === 'true') {
               sessionStorage.setItem('active_tab', 'true');
             }
+
+            if (userRef.current) {
+              // El token fue refrescado automáticamente por Supabase.
+              // El cliente ya tiene el nuevo JWT internamente — no hacer NADA más.
+              // Hacer queries adicionales aquí interfiere con el refresh y bloquea
+              // las queries de los módulos.
+              return;
+            }
+
+            // Sin usuario en memoria → login real, cargar datos con spinner.
             armSafetyTimer();
             await loadPersonaData(session.user.id, session.user.email ?? '');
+
           } else {
+            // Primer SIGNED_IN tras getSession → ya lo manejó getSession, ignorar.
             initialSessionHandled.current = true;
           }
+
+        } else if (event === 'TOKEN_REFRESHED') {
+          // Supabase ya actualizó el JWT internamente. No hacer nada adicional.
+          return;
 
         } else if (event === 'SIGNED_OUT') {
           localStorage.removeItem('session_only');
@@ -129,8 +135,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             done();
           }
         }
-        // TOKEN_REFRESHED: ignorar completamente — la sesión sigue activa,
-        // el usuario ya está en memoria, no hay nada que recargar.
       }
     );
 

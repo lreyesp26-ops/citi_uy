@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { Ministerio, MinisterioFormData, Persona } from '../types';
+import { Ministerio, MinisterioFormData } from '../types';
 import { toast } from '../components/ui/Toast';
 
 export const useMinisterios = () => {
