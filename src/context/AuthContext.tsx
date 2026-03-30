@@ -19,9 +19,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const initialSessionHandled = useRef(false);
   const safetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const userRef = useRef<AuthUser | null>(null);
 
-  // Garantía absoluta: si en 8 segundos loading sigue en true, apagarlo.
-  // Evita que cualquier edge case deje la app congelada.
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
   const armSafetyTimer = () => {
     if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
     safetyTimerRef.current = setTimeout(() => {
@@ -67,7 +70,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (data) {
-          setUser({ id: userId, email, persona: data as Persona });
+          const authUser: AuthUser = { id: userId, email, persona: data as Persona };
+          setUser(authUser);
+          userRef.current = authUser;
         }
       } catch (err) {
         console.error('[AuthContext] Unexpected error:', err);
@@ -79,7 +84,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const isSessionOnly = localStorage.getItem('session_only') === 'true';
     const isActiveTab = sessionStorage.getItem('active_tab') === 'true';
 
-    // Verificar sesión existente al montar
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted) return;
 
@@ -100,29 +104,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    // Escuchar cambios de auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
 
         if (event === 'SIGNED_IN' && session?.user) {
           if (initialSessionHandled.current) {
-            // Login real posterior al montaje inicial
             if (localStorage.getItem('session_only') === 'true') {
               sessionStorage.setItem('active_tab', 'true');
             }
             armSafetyTimer();
             await loadPersonaData(session.user.id, session.user.email ?? '');
           } else {
-            // SIGNED_IN inicial duplicado — getSession ya lo maneja
             initialSessionHandled.current = true;
-          }
-
-        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-          // Renovación automática — solo actuar si el user se perdió
-          if (!user && mounted) {
-            armSafetyTimer();
-            await loadPersonaData(session.user.id, session.user.email ?? '');
           }
 
         } else if (event === 'SIGNED_OUT') {
@@ -131,9 +125,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           initialSessionHandled.current = false;
           if (mounted) {
             setUser(null);
+            userRef.current = null;
             done();
           }
         }
+        // TOKEN_REFRESHED: ignorar completamente — la sesión sigue activa,
+        // el usuario ya está en memoria, no hay nada que recargar.
       }
     );
 
@@ -147,6 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    userRef.current = null;
   };
 
   return (

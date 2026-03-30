@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Heart, Users, Search, AlertTriangle } from 'lucide-react';
+import { Plus, Heart, Search, AlertTriangle } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Spinner } from '../../components/ui/Spinner';
@@ -18,7 +18,7 @@ export const MinisteriosPage: React.FC = () => {
     const myPersonaId = user?.persona?.id_persona || '';
 
     const { ministerios, loading, saving, crearMinisterio, actualizarMinisterio, toggleEstado } = useMinisterios();
-    const { personas } = usePersonasParaLideres();
+    const { personas, refetch: refetchPersonas } = usePersonasParaLideres();
 
     const [search, setSearch] = useState('');
     const [showFormModal, setShowFormModal] = useState(false);
@@ -26,8 +26,7 @@ export const MinisteriosPage: React.FC = () => {
     const [confirmToggle, setConfirmToggle] = useState<Ministerio | null>(null);
     const [toggleLoading, setToggleLoading] = useState(false);
 
-    // Para líderes: qué ministerios los incluyen
-    const misMinisterioComo = useMemo(() => {
+    const misMinisteriosComo = useMemo(() => {
         if (isPastor) return [];
         return ministerios.filter(m =>
             m.ministerio_lideres.some(ml => ml.id_persona === myPersonaId)
@@ -41,7 +40,6 @@ export const MinisteriosPage: React.FC = () => {
         );
     }, [ministerios, myPersonaId, isPastor]);
 
-    // Filtrar por búsqueda
     const filterFn = (list: Ministerio[]) => {
         if (!search.trim()) return list;
         const q = search.toLowerCase();
@@ -51,7 +49,6 @@ export const MinisteriosPage: React.FC = () => {
         );
     };
 
-    // Para pastor: divisón principal vs resto
     const pastorPrincipales = filterFn(ministerios.filter(m => m.es_principal));
     const pastorResto = filterFn(ministerios.filter(m => !m.es_principal));
 
@@ -131,7 +128,6 @@ export const MinisteriosPage: React.FC = () => {
             {/* Vista pastor */}
             {isPastor && (
                 <>
-                    {/* Ministerios principales */}
                     {pastorPrincipales.length > 0 && (
                         <section>
                             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -140,19 +136,12 @@ export const MinisteriosPage: React.FC = () => {
                             </h2>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {pastorPrincipales.map(m => (
-                                    <MinisterioCard
-                                        key={m.id_ministerio}
-                                        ministerio={m}
-                                        onEdit={handleEdit}
-                                        onToggle={setConfirmToggle}
-                                        isPastor={isPastor}
-                                    />
+                                    <MinisterioCard key={m.id_ministerio} ministerio={m} onEdit={handleEdit} onToggle={setConfirmToggle} isPastor={isPastor} />
                                 ))}
                             </div>
                         </section>
                     )}
 
-                    {/* Resto de ministerios */}
                     <section>
                         {pastorPrincipales.length > 0 && (
                             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -174,13 +163,7 @@ export const MinisteriosPage: React.FC = () => {
                         ) : pastorResto.length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {pastorResto.map(m => (
-                                    <MinisterioCard
-                                        key={m.id_ministerio}
-                                        ministerio={m}
-                                        onEdit={handleEdit}
-                                        onToggle={setConfirmToggle}
-                                        isPastor={isPastor}
-                                    />
+                                    <MinisterioCard key={m.id_ministerio} ministerio={m} onEdit={handleEdit} onToggle={setConfirmToggle} isPastor={isPastor} />
                                 ))}
                             </div>
                         ) : null}
@@ -191,29 +174,22 @@ export const MinisteriosPage: React.FC = () => {
             {/* Vista líder */}
             {!isPastor && (
                 <>
-                    {misMinisterioComo.length > 0 && (
+                    {misMinisteriosComo.length > 0 && (
                         <section>
                             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                                 <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
                                 Ministerios a tu cargo
                             </h2>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {filterFn(misMinisterioComo).map(m => (
-                                    <MinisterioCard
-                                        key={m.id_ministerio}
-                                        ministerio={m}
-                                        onEdit={handleEdit}
-                                        onToggle={setConfirmToggle}
-                                        isPastor={false}
-                                    />
+                                {filterFn(misMinisteriosComo).map(m => (
+                                    <MinisterioCard key={m.id_ministerio} ministerio={m} onEdit={handleEdit} onToggle={setConfirmToggle} isPastor={false} />
                                 ))}
                             </div>
                         </section>
                     )}
-
                     {restosMinisterios.length > 0 && (
                         <section>
-                            {misMinisterioComo.length > 0 && (
+                            {misMinisteriosComo.length > 0 && (
                                 <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                                     <span className="inline-block w-2 h-2 rounded-full bg-gray-400" />
                                     Otros ministerios
@@ -221,18 +197,11 @@ export const MinisteriosPage: React.FC = () => {
                             )}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {filterFn(restosMinisterios).map(m => (
-                                    <MinisterioCard
-                                        key={m.id_ministerio}
-                                        ministerio={m}
-                                        onEdit={() => { }}
-                                        onToggle={() => { }}
-                                        isPastor={false}
-                                    />
+                                    <MinisterioCard key={m.id_ministerio} ministerio={m} onEdit={() => { }} onToggle={() => { }} isPastor={false} />
                                 ))}
                             </div>
                         </section>
                     )}
-
                     {ministerios.length === 0 && (
                         <EmptyState
                             icon={<Heart className="w-12 h-12 text-gray-400" />}
@@ -289,6 +258,7 @@ export const MinisteriosPage: React.FC = () => {
                     ministerio={editingMinisterio}
                     personas={personas}
                     myPersonaId={myPersonaId}
+                    onPersonasRefetch={refetchPersonas}
                 />
             )}
         </div>
