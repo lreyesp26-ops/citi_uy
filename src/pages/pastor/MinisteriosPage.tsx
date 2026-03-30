@@ -1,10 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Heart, Search, AlertTriangle } from 'lucide-react';
+import { Plus, Heart, Search } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Spinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { Modal } from '../../components/ui/Modal';
 import { MinisterioCard } from '../../components/ministerios/MinisterioCard';
 import { MinisterioFormModal } from '../../components/ministerios/MinisterioFormModal';
 import { useMinisterios } from '../../hooks/useMinisterios';
@@ -23,8 +22,6 @@ export const MinisteriosPage: React.FC = () => {
     const [search, setSearch] = useState('');
     const [showFormModal, setShowFormModal] = useState(false);
     const [editingMinisterio, setEditingMinisterio] = useState<Ministerio | null>(null);
-    const [confirmToggle, setConfirmToggle] = useState<Ministerio | null>(null);
-    const [toggleLoading, setToggleLoading] = useState(false);
 
     const misMinisteriosComo = useMemo(() => {
         if (isPastor) return [];
@@ -73,14 +70,6 @@ export const MinisteriosPage: React.FC = () => {
         return crearMinisterio(data, logoFile, lideresIds);
     };
 
-    const handleConfirmToggle = async () => {
-        if (!confirmToggle) return;
-        setToggleLoading(true);
-        await toggleEstado(confirmToggle.id_ministerio, confirmToggle.estado_activo);
-        setToggleLoading(false);
-        setConfirmToggle(null);
-    };
-
     if (loading) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -104,7 +93,7 @@ export const MinisteriosPage: React.FC = () => {
                 {isPastor && (
                     <Button
                         onClick={() => { setEditingMinisterio(null); setShowFormModal(true); }}
-                        className="flex items-center gap-2 flex-shrink-0"
+                        className="flex-shrink-0"
                     >
                         <Plus className="w-4 h-4" />
                         <span className="hidden sm:inline">Nuevo ministerio</span>
@@ -136,7 +125,13 @@ export const MinisteriosPage: React.FC = () => {
                             </h2>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {pastorPrincipales.map(m => (
-                                    <MinisterioCard key={m.id_ministerio} ministerio={m} onEdit={handleEdit} onToggle={setConfirmToggle} isPastor={isPastor} />
+                                    <MinisterioCard
+                                        key={m.id_ministerio}
+                                        ministerio={m}
+                                        onEdit={handleEdit}
+                                        onToggle={(m) => toggleEstado(m.id_ministerio, m.estado_activo)}
+                                        isPastor={isPastor}
+                                    />
                                 ))}
                             </div>
                         </section>
@@ -155,7 +150,7 @@ export const MinisteriosPage: React.FC = () => {
                                 title="Sin ministerios"
                                 description="Crea el primer ministerio de la iglesia."
                                 action={
-                                    <Button onClick={() => setShowFormModal(true)} className="flex items-center gap-2">
+                                    <Button onClick={() => setShowFormModal(true)}>
                                         <Plus className="w-4 h-4" /> Crear primer ministerio
                                     </Button>
                                 }
@@ -163,7 +158,13 @@ export const MinisteriosPage: React.FC = () => {
                         ) : pastorResto.length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {pastorResto.map(m => (
-                                    <MinisterioCard key={m.id_ministerio} ministerio={m} onEdit={handleEdit} onToggle={setConfirmToggle} isPastor={isPastor} />
+                                    <MinisterioCard
+                                        key={m.id_ministerio}
+                                        ministerio={m}
+                                        onEdit={handleEdit}
+                                        onToggle={(m) => toggleEstado(m.id_ministerio, m.estado_activo)}
+                                        isPastor={isPastor}
+                                    />
                                 ))}
                             </div>
                         ) : null}
@@ -182,7 +183,13 @@ export const MinisteriosPage: React.FC = () => {
                             </h2>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {filterFn(misMinisteriosComo).map(m => (
-                                    <MinisterioCard key={m.id_ministerio} ministerio={m} onEdit={handleEdit} onToggle={setConfirmToggle} isPastor={false} />
+                                    <MinisterioCard
+                                        key={m.id_ministerio}
+                                        ministerio={m}
+                                        onEdit={handleEdit}
+                                        onToggle={(m) => toggleEstado(m.id_ministerio, m.estado_activo)}
+                                        isPastor={false}
+                                    />
                                 ))}
                             </div>
                         </section>
@@ -197,7 +204,13 @@ export const MinisteriosPage: React.FC = () => {
                             )}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {filterFn(restosMinisterios).map(m => (
-                                    <MinisterioCard key={m.id_ministerio} ministerio={m} onEdit={() => { }} onToggle={() => { }} isPastor={false} />
+                                    <MinisterioCard
+                                        key={m.id_ministerio}
+                                        ministerio={m}
+                                        onEdit={() => { }}
+                                        onToggle={() => { }}
+                                        isPastor={false}
+                                    />
                                 ))}
                             </div>
                         </section>
@@ -211,42 +224,6 @@ export const MinisteriosPage: React.FC = () => {
                     )}
                 </>
             )}
-
-            {/* Modal confirmación toggle */}
-            <Modal
-                isOpen={!!confirmToggle}
-                onClose={() => setConfirmToggle(null)}
-                title={confirmToggle?.estado_activo ? 'Desactivar ministerio' : 'Activar ministerio'}
-                width="sm"
-            >
-                <div className="flex flex-col items-center text-center p-2">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${confirmToggle?.estado_activo ? 'bg-red-100' : 'bg-green-100'}`}>
-                        <AlertTriangle className={`w-6 h-6 ${confirmToggle?.estado_activo ? 'text-red-600' : 'text-green-600'}`} />
-                    </div>
-                    <p className="text-gray-700 font-medium mb-1">
-                        ¿{confirmToggle?.estado_activo ? 'Desactivar' : 'Activar'} este ministerio?
-                    </p>
-                    <p className="text-sm text-gray-500 mb-6">
-                        <span className="font-semibold text-gray-700">{confirmToggle?.nombre}</span>
-                        {confirmToggle?.estado_activo
-                            ? ' quedará como inactivo en el sistema.'
-                            : ' volverá a estar activo en el sistema.'}
-                    </p>
-                    <div className="flex w-full gap-3">
-                        <Button variant="secondary" fullWidth onClick={() => setConfirmToggle(null)} disabled={toggleLoading}>
-                            Cancelar
-                        </Button>
-                        <Button
-                            variant={confirmToggle?.estado_activo ? 'danger' : 'primary'}
-                            fullWidth
-                            isLoading={toggleLoading}
-                            onClick={handleConfirmToggle}
-                        >
-                            {confirmToggle?.estado_activo ? 'Sí, desactivar' : 'Sí, activar'}
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
 
             {/* Modal formulario */}
             {isPastor && (

@@ -75,7 +75,6 @@ export const useMinisterios = () => {
 
             if (error) throw error;
 
-            // Upload logo si hay
             if (logoFile) {
                 const url = await uploadLogo(logoFile, nuevo.id_ministerio);
                 if (url) {
@@ -86,7 +85,6 @@ export const useMinisterios = () => {
                 }
             }
 
-            // Asignar líderes
             if (lideresIds && lideresIds.length > 0) {
                 const rows = lideresIds.map(id => ({
                     id_ministerio: nuevo.id_ministerio,
@@ -133,7 +131,6 @@ export const useMinisterios = () => {
 
             if (error) throw error;
 
-            // Reemplazar líderes
             if (lideresIds !== undefined) {
                 await supabase.from('ministerio_lideres').delete().eq('id_ministerio', id);
                 if (lideresIds.length > 0) {
@@ -156,6 +153,7 @@ export const useMinisterios = () => {
         }
     };
 
+    // Sin modal — acción inmediata con undo toast
     const toggleEstado = async (id: string, estadoActual: boolean): Promise<void> => {
         try {
             const { error } = await supabase
@@ -163,8 +161,22 @@ export const useMinisterios = () => {
                 .update({ estado_activo: !estadoActual })
                 .eq('id_ministerio', id);
             if (error) throw error;
-            toast.success(!estadoActual ? 'Ministerio activado.' : 'Ministerio desactivado.');
+
             await fetchMinisterios();
+
+            toast.success(
+                estadoActual ? 'Ministerio desactivado.' : 'Ministerio activado.',
+                {
+                    label: 'Deshacer',
+                    onClick: async () => {
+                        await supabase
+                            .from('ministerios')
+                            .update({ estado_activo: estadoActual })
+                            .eq('id_ministerio', id);
+                        await fetchMinisterios();
+                    },
+                }
+            );
         } catch (err: any) {
             toast.error('Error al cambiar el estado.');
         }

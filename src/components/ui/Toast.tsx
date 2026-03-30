@@ -8,20 +8,20 @@ export interface ToastMessage {
   id: string;
   type: ToastType;
   message: string;
+  action?: { label: string; onClick: () => void };
 }
 
-// Global emitter for toasts (simplest approach without context refactor overhead)
 let toastListener: ((toast: ToastMessage) => void) | null = null;
 
 export const toast = {
-  success: (message: string) => emitToast('success', message),
+  success: (message: string, action?: ToastMessage['action']) => emitToast('success', message, action),
   error: (message: string) => emitToast('error', message),
   info: (message: string) => emitToast('info', message),
 };
 
-const emitToast = (type: ToastType, message: string) => {
+const emitToast = (type: ToastType, message: string, action?: ToastMessage['action']) => {
   if (toastListener) {
-    toastListener({ id: Math.random().toString(36).substring(2, 9), type, message });
+    toastListener({ id: Math.random().toString(36).substring(2, 9), type, message, action });
   }
 };
 
@@ -33,11 +33,9 @@ export const ToastContainer: React.FC = () => {
       setToasts((prev) => [...prev, t]);
       setTimeout(() => {
         setToasts((prev) => prev.filter((toast) => toast.id !== t.id));
-      }, 5000); // auto-dismiss in 5s
+      }, 5000);
     };
-    return () => {
-      toastListener = null;
-    };
+    return () => { toastListener = null; };
   }, []);
 
   if (toasts.length === 0) return null;
@@ -48,23 +46,32 @@ export const ToastContainer: React.FC = () => {
         <div
           key={t.id}
           className={`
-            pointer-events-auto flex items-start p-4 rounded-lg shadow-lg border max-w-sm transform transition-all
+            pointer-events-auto flex items-center p-4 rounded-lg shadow-lg border max-w-sm
             ${t.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : ''}
             ${t.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' : ''}
             ${t.type === 'info' ? 'bg-blue-50 border-blue-200 text-blue-800' : ''}
           `}
         >
-          <div className="shrink-0 mr-3 mt-0.5">
+          <div className="shrink-0 mr-3">
             {t.type === 'success' && <CheckCircle2 className="w-5 h-5 text-green-600" />}
             {t.type === 'error' && <AlertCircle className="w-5 h-5 text-red-600" />}
             {t.type === 'info' && <Info className="w-5 h-5 text-blue-600" />}
           </div>
-          <div className="flex-1 bg-transparent text-sm font-medium">
-            {t.message}
-          </div>
+          <div className="flex-1 text-sm font-medium">{t.message}</div>
+          {t.action && (
+            <button
+              onClick={() => {
+                t.action!.onClick();
+                setToasts((prev) => prev.filter((x) => x.id !== t.id));
+              }}
+              className="ml-3 shrink-0 text-xs font-bold underline hover:no-underline transition-all"
+            >
+              {t.action.label}
+            </button>
+          )}
           <button
-            onClick={() => setToasts((prev) => prev.filter((toast) => toast.id !== t.id))}
-            className="ml-4 shrink-0 opacity-50 hover:opacity-100 transition-opacity"
+            onClick={() => setToasts((prev) => prev.filter((x) => x.id !== t.id))}
+            className="ml-3 shrink-0 opacity-40 hover:opacity-100 transition-opacity"
           >
             <X className="w-4 h-4" />
           </button>
