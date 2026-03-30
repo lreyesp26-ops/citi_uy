@@ -20,6 +20,8 @@ interface MinisterioFormModalProps {
     onPersonasRefetch?: () => void;
 }
 
+const MAX_LIDERES = 2;
+
 const PRESET_COLORS = [
     '#ef4444', '#f97316', '#f59e0b', '#84cc16',
     '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6',
@@ -43,11 +45,8 @@ export const MinisterioFormModal: React.FC<MinisterioFormModalProps> = ({
     const [selectedLideres, setSelectedLideres] = useState<string[]>([]);
     const [searchLider, setSearchLider] = useState('');
 
-    // Flujo de ascenso
     const [personaParaCompletar, setPersonaParaCompletar] = useState<PersonaParaLider | null>(null);
     const [personaParaAscender, setPersonaParaAscender] = useState<PersonaParaLider | null>(null);
-
-    // Lista local sincronizada con props (se actualiza tras completar datos o ascender)
     const [personasLocal, setPersonasLocal] = useState<PersonaParaLider[]>([]);
 
     const { ascending, ascenderALider, previewUsername } = useAscenderLider();
@@ -58,6 +57,9 @@ export const MinisterioFormModal: React.FC<MinisterioFormModalProps> = ({
 
     const colorActual = watch('color');
     const nombreActual = watch('nombre');
+    const esPrincipalActual = watch('es_principal');
+
+    const limiteAlcanzado = selectedLideres.length >= MAX_LIDERES;
 
     useEffect(() => { setPersonasLocal(personas); }, [personas]);
 
@@ -101,6 +103,9 @@ export const MinisterioFormModal: React.FC<MinisterioFormModalProps> = ({
             setSelectedLideres(prev => prev.filter(x => x !== id));
             return;
         }
+
+        // Bloquear si ya hay 2
+        if (selectedLideres.length >= MAX_LIDERES) return;
 
         // Pastor o líder con cuenta → seleccionar directo
         if (persona.id_usuario || persona.rol === 'pastor' || persona.rol === 'lider') {
@@ -224,7 +229,7 @@ export const MinisterioFormModal: React.FC<MinisterioFormModalProps> = ({
                                 )}
                             </div>
                             <div className="flex flex-col gap-2">
-                                <Button type="button" variant="secondary" className="flex items-center gap-2 text-sm" onClick={() => fileInputRef.current?.click()}>
+                                <Button type="button" variant="secondary" className="text-sm" onClick={() => fileInputRef.current?.click()}>
                                     <Upload className="w-4 h-4" /> {logoPreview ? 'Cambiar logo' : 'Subir logo'}
                                 </Button>
                                 {logoPreview && (
@@ -240,13 +245,20 @@ export const MinisterioFormModal: React.FC<MinisterioFormModalProps> = ({
                     </div>
 
                     {/* Es principal */}
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 border border-amber-100 cursor-pointer"
-                        onClick={() => setValue('es_principal', !watch('es_principal'))}>
-                        <input id="es_principal" type="checkbox" {...register('es_principal')}
-                            className="h-4 w-4 rounded text-red-600 border-gray-300 focus:ring-red-500 cursor-pointer" />
+                    <div
+                        className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 border border-amber-100 cursor-pointer"
+                        onClick={() => setValue('es_principal', !esPrincipalActual)}
+                    >
+                        <input
+                            id="es_principal"
+                            type="checkbox"
+                            checked={!!esPrincipalActual}
+                            readOnly
+                            className="h-4 w-4 rounded text-red-600 border-gray-300 focus:ring-red-500 cursor-pointer"
+                        />
                         <div>
-                            <p className="text-sm font-medium text-amber-800 flex items-center gap-1.5">
-                                <Star className="w-3.5 h-3.5" /> Ministerio principal de la iglesia
+                            <p className="text-sm font-medium text-amber-800 flex items-center gap-1.5 cursor-pointer">
+                                <Star className="w-3.5 h-3.5 cursor-pointer" /> Ministerio principal de la iglesia
                             </p>
                             <p className="text-xs text-amber-600 mt-0.5">Aparecerá destacado en el dashboard</p>
                         </div>
@@ -254,14 +266,22 @@ export const MinisterioFormModal: React.FC<MinisterioFormModalProps> = ({
 
                     {/* Líderes */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Líderes asignados
-                            {selectedLideres.length > 0 && (
-                                <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold text-white" style={{ backgroundColor: colorActual }}>
-                                    {selectedLideres.length}
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <label className="block text-sm font-medium text-gray-700">
+                                Líderes asignados
+                            </label>
+                            <span
+                                className="px-2 py-0.5 rounded-full text-xs font-bold text-white"
+                                style={{ backgroundColor: limiteAlcanzado ? '#6b7280' : colorActual }}
+                            >
+                                {selectedLideres.length}/{MAX_LIDERES}
+                            </span>
+                            {limiteAlcanzado && (
+                                <span className="text-xs text-amber-600 font-medium">
+                                    · Desmarca uno para cambiar
                                 </span>
                             )}
-                        </label>
+                        </div>
 
                         {/* Leyenda */}
                         <div className="flex flex-wrap items-center gap-3 mb-2 text-xs text-gray-400">
@@ -281,6 +301,7 @@ export const MinisterioFormModal: React.FC<MinisterioFormModalProps> = ({
                             ) : (
                                 filteredPersonas.map(p => {
                                     const isSelected = selectedLideres.includes(p.id_persona);
+                                    const isDisabled = limiteAlcanzado && !isSelected;
                                     const isMe = p.id_persona === myPersonaId;
                                     const initials = `${p.nombres.charAt(0)}${p.apellidos.charAt(0)}`.toUpperCase();
                                     const esMiembro = !p.id_usuario && p.rol !== 'pastor' && p.rol !== 'lider';
@@ -288,8 +309,16 @@ export const MinisterioFormModal: React.FC<MinisterioFormModalProps> = ({
                                     const badge = ROL_BADGE[p.rol] || ROL_BADGE['miembro'];
 
                                     return (
-                                        <button key={p.id_persona} type="button" onClick={() => handlePersonaClick(p)}
-                                            className={`w-full flex items-center gap-3 px-3 py-2.5 transition-colors text-left ${isSelected ? 'bg-red-50' : 'hover:bg-gray-50'}`}>
+                                        <button
+                                            key={p.id_persona}
+                                            type="button"
+                                            onClick={() => handlePersonaClick(p)}
+                                            disabled={isDisabled}
+                                            className={`w-full flex items-center gap-3 px-3 py-2.5 transition-colors text-left
+                                                ${isSelected ? 'bg-red-50' : ''}
+                                                ${isDisabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50'}
+                                            `}
+                                        >
                                             <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold text-white"
                                                 style={{ backgroundColor: isSelected ? colorActual : '#9ca3af' }}>
                                                 {initials}
@@ -304,7 +333,7 @@ export const MinisterioFormModal: React.FC<MinisterioFormModalProps> = ({
                                                         {badge.label}
                                                     </span>
                                                 </div>
-                                                {esMiembro && !isSelected && (
+                                                {esMiembro && !isSelected && !isDisabled && (
                                                     <div className="flex items-center gap-1 mt-0.5">
                                                         {faltanDatos ? (
                                                             <>

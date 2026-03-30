@@ -92,6 +92,7 @@ export const useMiembros = () => {
         }
     };
 
+    // Sin modal — acción inmediata con undo toast
     const toggleEstado = async (id: string, estadoActual: boolean): Promise<void> => {
         try {
             const { error } = await supabase
@@ -99,8 +100,22 @@ export const useMiembros = () => {
                 .update({ estado_activo: !estadoActual })
                 .eq('id_persona', id);
             if (error) throw error;
-            toast.success(!estadoActual ? 'Miembro activado.' : 'Miembro desactivado.');
+
             await fetchMiembros();
+
+            toast.success(
+                estadoActual ? 'Miembro desactivado.' : 'Miembro activado.',
+                {
+                    label: 'Deshacer',
+                    onClick: async () => {
+                        await supabase
+                            .from('personas')
+                            .update({ estado_activo: estadoActual })
+                            .eq('id_persona', id);
+                        await fetchMiembros();
+                    },
+                }
+            );
         } catch (err: any) {
             toast.error(parsearErrorSupabase(err));
         }
