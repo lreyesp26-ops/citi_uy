@@ -98,3 +98,44 @@ export interface MinisterioFormData {
   color: string;
   es_principal?: boolean;
 }
+
+export interface Evento {
+  id_evento: string;
+  titulo: string;
+  descripcion?: string;
+  id_ministerio: string;
+  id_creador: string;
+  fecha_inicio: string;
+  fecha_fin: string;
+  lugar?: string;
+  estado: 'pendiente' | 'aprobado' | 'rechazado';
+  id_aprobador?: string;
+  aprobado_at?: string;
+  imagen_publicidad_url?: string;
+  created_at?: string;
+  updated_at?: string;
+  ministerios?: { id_ministerio: string; nombre: string; color: string; logo_url?: string; };
+  creador?: { id_persona: string; nombres: string; apellidos: string; rol: string; };
+  aprobador?: { id_persona: string; nombres: string; apellidos: string; };
+}
+
+export interface EventoFormData {
+  titulo: string;
+  descripcion?: string;
+  id_ministerio: string;
+  fecha_inicio: string;
+  fecha_fin: string;
+  lugar?: string;
+}
+
+export interface Notificacion {
+  id_notificacion: string;
+  id_destinatario: string;
+  tipo: string;
+  titulo: string;
+  mensaje?: string;
+  id_evento?: string;
+  leida: boolean;
+  created_at: string;
+  eventos?: { id_evento: string; titulo: string; estado: string; };
+}
