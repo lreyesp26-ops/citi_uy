@@ -5,3 +5,4 @@ export { MinisteriosPage } from './MinisteriosPage';
 export { EventosPage } from './EventosPage';
 export { ReportesPage } from './ReportesPage';
 export { ConfiguracionPage } from './ConfiguracionPage';
+export { CursosBiblicosPage } from './CursosBiblicosPage';

@@ -13,7 +13,8 @@ import {
   MinisteriosPage,
   EventosPage,
   ReportesPage,
-  ConfiguracionPage
+  ConfiguracionPage,
+  CursosBiblicosPage
 } from '../pages/pastor';
 
 import {
@@ -33,7 +34,7 @@ export const AppRouter: React.FC = () => {
       <Route element={<ProtectedRoute />}>
         {/* Layout Wrapper */}
         <Route element={<DashboardLayout />}>
-          
+
           {/* Pastor Routes */}
           <Route element={<RoleRoute allowedRoles={['pastor']} />}>
             <Route path="/pastor/dashboard" element={<PastorDashboard />} />
@@ -43,6 +44,7 @@ export const AppRouter: React.FC = () => {
             <Route path="/pastor/eventos" element={<EventosPage />} />
             <Route path="/pastor/reportes" element={<ReportesPage />} />
             <Route path="/pastor/configuracion" element={<ConfiguracionPage />} />
+            <Route path="/pastor/cursos" element={<CursosBiblicosPage />} />
           </Route>
 
           {/* Lider Routes */}
