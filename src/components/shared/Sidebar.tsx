@@ -9,7 +9,8 @@ import {
   Calendar,
   PieChart,
   Settings,
-  BookOpen
+  BookOpen,
+  DollarSign
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -29,6 +30,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { name: 'Ministerios', to: '/pastor/ministerios', icon: Heart },
     { name: 'Cursos Bíblicos', to: '/pastor/cursos', icon: BookOpen },
     { name: 'Eventos', to: '/pastor/eventos', icon: Calendar },
+    { name: 'Diezmos', to: '/pastor/diezmos', icon: DollarSign },
+    { name: 'Devocional', to: '/pastor/devocional', icon: BookOpen },
     { name: 'Reportes', to: '/pastor/reportes', icon: PieChart },
     { name: 'Configuración', to: '/pastor/configuracion', icon: Settings },
   ];

@@ -14,7 +14,9 @@ import {
   EventosPage,
   ReportesPage,
   ConfiguracionPage,
-  CursosBiblicosPage
+  CursosBiblicosPage,
+  DiezmosPage,
+  DevocionalPage
 } from '../pages/pastor';
 
 import {
@@ -45,6 +47,8 @@ export const AppRouter: React.FC = () => {
             <Route path="/pastor/reportes" element={<ReportesPage />} />
             <Route path="/pastor/configuracion" element={<ConfiguracionPage />} />
             <Route path="/pastor/cursos" element={<CursosBiblicosPage />} />
+            <Route path="/pastor/diezmos" element={<DiezmosPage />} />
+            <Route path="/pastor/devocional" element={<DevocionalPage />} />
           </Route>
 
           {/* Lider Routes */}
