@@ -76,11 +76,17 @@ export const useEventos = () => {
         }
     };
 
-    const aprobarEvento = async (id: string, estado: 'aprobado' | 'rechazado'): Promise<boolean> => {
+    // motivo es obligatorio cuando estado === 'rechazado'
+    const aprobarEvento = async (
+        id: string,
+        estado: 'aprobado' | 'rechazado',
+        motivo?: string,
+    ): Promise<boolean> => {
         try {
             const { error } = await supabase.rpc('aprobar_evento', {
                 p_id_evento: id,
                 p_estado: estado,
+                p_motivo: motivo || null,
             });
             if (error) throw error;
             toast.success(estado === 'aprobado' ? '✓ Evento aprobado.' : 'Evento rechazado.');
