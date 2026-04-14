@@ -19,9 +19,8 @@ import {
     useExamenes, useCalificacionesExamen, useNotasFinales,
 } from '../../hooks/useCursos';
 import type {
-    Periodo, Curso, Participante, Clase, Tarea, Examen,
+    Periodo, Curso, Participante, Clase,
     PeriodoFormData, CursoFormData, ClaseFormData,
-    TareaFormData, ExamenFormData,
 } from '../../hooks/useCursos';
 
 // ── Utilidades ───────────────────────────────────────────────────────────────
